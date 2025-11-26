@@ -4,72 +4,78 @@ import "../theme"
 
 PanelWindow {
     id: root
-    
-    // Fixed: Use implicitHeight to avoid the warning
     implicitHeight: 46 
-    
     anchors {
         top: true
         left: true
         right: true
     }
-    
     color: "transparent"
 
-    // Background Panel
-    Rectangle {
+    // Master Container
+    Item {
         anchors.fill: parent
-        anchors.margins: 4
-        color: "#1e1e2e" // Dark background
-        radius: 10
-        opacity: 0.9
-        
-        // --- 1. Left: Clock ---
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
+
+        // --- 1. LEFT PILL (Clock) ---
+        // Clock.qml already has a Rectangle background, so we just place it.
         Row {
             anchors.left: parent.left
-            anchors.leftMargin: 15
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
-            
             Clock {}
         }
 
-        // --- 2. Center: Workspaces ---
-        Item {
+        // --- 2. CENTER PILL (Workspaces) ---
+        Rectangle {
             anchors.centerIn: parent
-            width: workspaces.width
-            height: parent.height
-            
+            height: 36
+            width: workspaces.width + 20 // Padding
+            color: "#1e1e2e" // Background color
+            radius: 18
+            border.color: "#313244"
+            border.width: 1
+
             Workspaces {
                 id: workspaces
+                anchors.centerIn: parent
             }
         }
 
-        // --- 3. Right: Indicators & Menu Button ---
-        Row {
+        // --- 3. RIGHT PILL (Indicators & Menu) ---
+        Rectangle {
             anchors.right: parent.right
-            anchors.rightMargin: 15
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 15
+            height: 36
+            width: rightRow.width + 24 // Padding
+            color: "#1e1e2e"
+            radius: 18
+            border.color: "#313244"
+            border.width: 1
 
-            // Your existing indicators (Volume/Network)
-            SystemIndicators {}
+            Row {
+                id: rightRow
+                anchors.centerIn: parent
+                spacing: 12
 
-            // The Dashboard Button
-            Rectangle {
-                width: 30; height: 30
-                radius: 15
-                color: GlobalState.showDashboard ? "#cba6f7" : "#313244"
+                SystemIndicators {}
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "M" // Simple Text Icon for now
-                    color: "white"
-                }
+                // Dashboard Toggle Button
+                Rectangle {
+                    width: 28; height: 28
+                    radius: 14
+                    color: GlobalState.showDashboard ? "#cba6f7" : "#45475a"
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: GlobalState.showDashboard = !GlobalState.showDashboard
+                    Text {
+                        anchors.centerIn: parent
+                        text: "" // Menu Icon
+                        color: GlobalState.showDashboard ? "#11111b" : "#cdd6f4"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: GlobalState.showDashboard = !GlobalState.showDashboard
+                    }
                 }
             }
         }

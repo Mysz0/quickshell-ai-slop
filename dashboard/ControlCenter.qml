@@ -6,55 +6,54 @@ import "../theme"
 PanelWindow {
     id: root
     
-    // Position: Top Right
+    // Use margins instead of anchors for the window gap
     anchors {
         top: true
         right: true
     }
-
-    // Offset from the edges (Gap)
-    margins {
-        top: 55
-        right: 10
-    }
+    
+    // Correct way to set window margins in newer Quickshell
+    // If 'margins' property fails again, assume anchors + margin values
+    margins.top: 55
+    margins.right: 10
 
     width: 380
-    height: 600
-    
-    // REMOVED: layer: Layer.Overlay (This was causing the crash)
-    
+    height: 500
     visible: GlobalState.showDashboard
     color: "transparent"
 
     Rectangle {
         anchors.fill: parent
-        color: "#1e1e2e"
+        color: "#1e1e2e" // Base
         radius: 12
-        border.color: "#313244"
-        border.width: 2
+        border.color: "#89b4fa" // Highlight border
+        border.width: 1
         
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 15
-            spacing: 10
+            anchors.margins: 16
+            spacing: 12
 
-            // Header
             Text {
                 text: "Control Center"
                 color: "#cdd6f4"
-                font.pixelSize: 18
+                font.pixelSize: 20
                 font.bold: true
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
 
-            // --- Wi-Fi Section (Flexible) ---
+            // --- Wi-Fi ---
             ColumnLayout {
                 Layout.fillWidth: true
-                Layout.fillHeight: true 
+                Layout.fillHeight: true
                 
-                Text { text: "  Wi-Fi"; color: "#89b4fa"; font.bold: true }
+                Text { 
+                    text: " Wi-Fi Networks" 
+                    color: "#a6e3a1"
+                    font.bold: true 
+                }
                 
                 WifiMenu {
                     Layout.fillWidth: true
@@ -64,12 +63,16 @@ PanelWindow {
 
             Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
 
-            // --- Bluetooth Section (Flexible) ---
+            // --- Bluetooth ---
             ColumnLayout {
                 Layout.fillWidth: true
-                Layout.fillHeight: true 
+                Layout.fillHeight: true
                 
-                Text { text: "  Bluetooth"; color: "#b4befe"; font.bold: true }
+                Text { 
+                    text: " Bluetooth Devices" 
+                    color: "#89b4fa"
+                    font.bold: true 
+                }
 
                 BluetoothMenu {
                     Layout.fillWidth: true
