@@ -9,40 +9,43 @@ Row {
     // --- 1. Volume Indicator ---
     property int volumeVal: 0
     property bool isMuted: false
-    property string volIcon: "" // Default icon
+    property string volIcon: ""
 
     Process {
         id: volProc
         command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
         
-        onStdoutChanged: {
-            var text = volProc.stdout.trim()
-            // Output format: "Volume: 0.45 [MUTED]"
-            
-            // 1. Check Muted
-            isMuted = text.includes("MUTED")
+        // FIX: Use StdioCollector to actually capture the output
+        stdout: StdioCollector {
+            onTextChanged: {
+                var output = text.trim()
+                // Console log to debug if it stays 0%
+                // console.log("Vol Output: " + output)
+                
+                // 1. Check Muted
+                isMuted = output.includes("MUTED")
 
-            // 2. Parse Volume
-            var parts = text.split(" ")
-            if (parts.length > 1) {
-                // "0.45" -> 45
-                volumeVal = Math.round(parseFloat(parts[1]) * 100)
-            }
-            
-            // 3. Update Icon
-            if (isMuted) {
-                volIcon = "" // Muted
-            } else if (volumeVal >= 70) {
-                volIcon = "" // High
-            } else if (volumeVal >= 30) {
-                volIcon = "" // Medium
-            } else {
-                volIcon = "" // Low
+                // 2. Parse Volume (Matches 0.45 or .45)
+                var match = output.match(/Volume:\s+([\d\.]+)/)
+                if (match && match.length >= 2) {
+                    volumeVal = Math.round(parseFloat(match[1]) * 100)
+                }
+                
+                // 3. Update Icon
+                if (isMuted) {
+                    volIcon = ""
+                } else if (volumeVal >= 60) {
+                    volIcon = ""
+                } else if (volumeVal >= 25) {
+                    volIcon = ""
+                } else {
+                    volIcon = ""
+                }
             }
         }
     }
 
-    // Refresh Volume every 2s
+    // Refresh Volume every 2 seconds
     Timer {
         interval: 2000; running: true; repeat: true
         triggeredOnStart: true
@@ -51,7 +54,7 @@ Row {
 
     // Volume Pill
     Rectangle {
-        width: 70
+        width: 76
         height: 30
         radius: 15
         color: Style.surface
@@ -74,48 +77,63 @@ Row {
             }
         }
         
-        // Simple click to toggle mute (optional extra)
         MouseArea {
             anchors.fill: parent
             onClicked: {
-               // Fire and forget mute toggle
-               var p = Qt.createQmlObject('import Quickshell.Io; Process { command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"] }', parent);
-               p.running = true;
-               volProc.running = true; // Force update UI
+                var p = Qt.createQmlObject('import Quickshell.Io; Process { command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"] }', parent);
+                p.running = true;
+                volProc.running = true; 
             }
         }
     }
 
     // --- 2. Network Indicator ---
-    property string netIcon: "󰤭" // Disconnected
-    property string netState: "Offline"
+    property string netIcon: "󰤭" 
+    property string netLabel: "Offline"
     property bool netActive: false
 
     Process {
         id: netProc
-        // Get active connection types: "802-11-wireless" or "802-3-ethernet"
-        command: ["nmcli", "-t", "-f", "TYPE,STATE", "connection", "show", "--active"]
+        command: ["nmcli", "-t", "-f", "TYPE,STATE,NAME", "connection", "show", "--active"]
         
-        onStdoutChanged: {
-            var out = netProc.stdout.trim()
-            
-            if (out.includes("wireless")) {
-                netIcon = "" 
-                netState = "Wi-Fi"
-                netActive = true
-            } else if (out.includes("ethernet")) {
-                netIcon = "󰈀"
-                netState = "Wired"
-                netActive = true
-            } else {
-                netIcon = "󰤭"
-                netState = "Offline"
-                netActive = false
+        // FIX: Use StdioCollector here too
+        stdout: StdioCollector {
+            onTextChanged: {
+                var output = text.trim()
+                var lines = output.split("\n")
+                
+                var found = false
+                
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i]
+                    if (line === "") continue
+
+                    // Parse your exact output: "802-3-ethernet:activated:Wired connection 1"
+                    if (line.includes("wireless") || line.includes("wifi")) {
+                        netIcon = ""
+                        var parts = line.split(":")
+                        netLabel = parts.length >= 3 ? parts[2] : "Wi-Fi"
+                        netActive = true
+                        found = true
+                        break 
+                    } 
+                    else if (line.includes("ethernet") || line.includes("802-3-ethernet")) {
+                        netIcon = "󰈀"
+                        netLabel = "Wired"
+                        netActive = true
+                        found = true
+                    }
+                }
+
+                if (!found) {
+                    netIcon = "󰤭"
+                    netLabel = "Offline"
+                    netActive = false
+                }
             }
         }
     }
 
-    // Refresh Network every 5s
     Timer {
         interval: 5000; running: true; repeat: true
         triggeredOnStart: true
@@ -124,28 +142,29 @@ Row {
 
     // Network Pill
     Rectangle {
-        visible: true // Always show, or set to 'netActive' to hide when offline
-        width: 80
+        width: netLabel.length > 6 ? 100 : 80
         height: 30
         radius: 15
         color: Style.surface
+        visible: true 
 
         Row {
             anchors.centerIn: parent
-            spacing: 6
+            spacing: 8
             
             Text {
                 text: netIcon
-                color: netActive ? "#a6e3a1" : "#f38ba8" // Green if active, Red if off
+                color: netActive ? "#a6e3a1" : Style.urgent
                 font.pixelSize: 14
-                font.family: "Nerd Font" // Ensure you have a Nerd Font installed
             }
             
             Text {
-                text: netState
+                text: netLabel
                 color: Style.text
                 font.bold: true
                 font.pixelSize: 12
+                elide: Text.ElideRight
+                width: 50
             }
         }
     }
