@@ -1,80 +1,91 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import "../theme"
 
 PanelWindow {
     id: root
-    implicitHeight: 46 
+    
+    implicitHeight: 55 
+    
     anchors {
         top: true
         left: true
         right: true
     }
     color: "transparent"
+    
+    Component.onCompleted: GlobalState.topBarWindow = root
+    property var monitor: Hyprland.monitorFor(root.screen)
 
-    // Master Container
-    Item {
-        anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
+    // The Main Floating Pill Bar
+    Rectangle {
+        id: barBackground
+        anchors {
+            fill: parent
+            margins: 10 
+            topMargin: 10
+            bottomMargin: 5
+        }
+        
+        radius: 12 
+        color: "#1e1e2e"
+        border.width: 1
+        border.color: "#313244"
 
-        // --- 1. LEFT PILL (Clock) ---
-        // Clock.qml already has a Rectangle background, so we just place it.
+        // --- Left: Clock ---
         Row {
             anchors.left: parent.left
+            anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             Clock {}
         }
 
-        // --- 2. CENTER PILL (Workspaces) ---
-        Rectangle {
+        // --- Center: Workspaces ---
+        Workspaces {
             anchors.centerIn: parent
-            height: 36
-            width: workspaces.width + 20 // Padding
-            color: "#1e1e2e" // Background color
-            radius: 18
-            border.color: "#313244"
-            border.width: 1
-
-            Workspaces {
-                id: workspaces
-                anchors.centerIn: parent
-            }
+            monitor: root.monitor
         }
 
-        // --- 3. RIGHT PILL (Indicators & Menu) ---
-        Rectangle {
+        // --- Right: Indicators + Dashboard ---
+        Row {
             anchors.right: parent.right
+            anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
-            height: 36
-            width: rightRow.width + 24 // Padding
-            color: "#1e1e2e"
-            radius: 18
-            border.color: "#313244"
-            border.width: 1
+            spacing: 15
 
-            Row {
-                id: rightRow
-                anchors.centerIn: parent
-                spacing: 12
+            SystemIndicators {}
 
-                SystemIndicators {}
+            // Dashboard Toggle Button (Burger Menu)
+            Rectangle {
+                id: dashBtn
+                
+                // Matches standard BarModule height
+                width: 32 
+                height: 30 
+                radius: 12
+                
+                // Add border to match other modules
+                border.width: 1
+                border.color: "#45475a"
+                
+                // Use Surface color when inactive to match the theme
+                color: GlobalState.showDashboard ?
+                        "#cba6f7" : Style.surface
 
-                // Dashboard Toggle Button
-                Rectangle {
-                    width: 28; height: 28
-                    radius: 14
-                    color: GlobalState.showDashboard ? "#cba6f7" : "#45475a"
+                Text {
+                    anchors.centerIn: parent
+                    text: ""
+                    color: GlobalState.showDashboard ?
+                           "#11111b" : "#cdd6f4"
+                }
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "" // Menu Icon
-                        color: GlobalState.showDashboard ? "#11111b" : "#cdd6f4"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: GlobalState.showDashboard = !GlobalState.showDashboard
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var pos = dashBtn.mapToItem(root.contentItem, dashBtn.width/2, 0)
+                        GlobalState.dashboardX = pos.x
+                        GlobalState.togglePopup("dashboard")
                     }
                 }
             }

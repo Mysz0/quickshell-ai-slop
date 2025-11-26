@@ -1,31 +1,36 @@
 import QtQuick
 import QtQuick.Controls
 import "../theme"
+import "../components"
 
-Rectangle {
-    width: timeText.implicitWidth + 24
-    height: 30
-    radius: 15
-    color: Style.surface
+BarModule {
+    id: root
+    property var monitor
+
+    // Increased width slightly to accommodate the date
+    width: timeText.implicitWidth + 30 
+
+    property var currentTime: new Date()
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: root.currentTime = new Date()
+    }
 
     Text {
         id: timeText
         anchors.centerIn: parent
-        text: Qt.formatDateTime(new Date(), "hh:mm")
-        color: Style.text
+        text: Qt.formatDateTime(root.currentTime, "ddd d MMM  hh:mm")
+        color: "#cdd6f4"
         font.bold: true
-    }
-    
-    // Fixed: Now ToolTip works because we imported QtQuick.Controls
-    ToolTip {
-        visible: ma.containsMouse
-        text: Qt.formatDateTime(new Date(), "ddd, MMM d")
-        delay: 500
+        font.pixelSize: 14
+        verticalAlignment: Text.AlignVCenter
     }
 
     MouseArea {
         id: ma
         anchors.fill: parent
-        hoverEnabled: true
     }
 }

@@ -7,9 +7,6 @@ import "../theme"
 Item {
     id: btMenu
     
-    // Use the native Bluetooth singleton provided by Quickshell
-    // This requires the Quickshell.Bluetooth module
-    
     ColumnLayout {
         anchors.fill: parent
         spacing: 10
@@ -32,6 +29,10 @@ Item {
                 color: (Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.discovering) 
                        ? Style.highlight 
                        : Style.surface
+                
+                // [ANIMATED] Scan Button Scale
+                scale: scanMa.containsMouse ? 1.05 : 1.0
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Text {
                     anchors.centerIn: parent
@@ -45,7 +46,9 @@ Item {
                 }
 
                 MouseArea {
+                    id: scanMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: {
                         if (Bluetooth.defaultAdapter) {
                             Bluetooth.defaultAdapter.discovering = !Bluetooth.defaultAdapter.discovering
@@ -62,22 +65,51 @@ Item {
             clip: true
             spacing: 4
 
-            // The native model contains all known/scanned devices
             model: Bluetooth.devices
 
             delegate: Rectangle {
                 width: ListView.view.width
-                height: 40
+                implicitHeight: contentLayout.implicitHeight + 16
+                
                 color: Style.surface
                 radius: 6
 
-                // modelData refers to the specific BluetoothDevice object
-                // We use it to bind directly to properties like .name and .connected
+                property bool isConnecting: false
+                property bool connectionError: false
+
+                Connections {
+                    target: modelData
+                    function onConnectedChanged() {
+                        if (modelData.connected) {
+                            isConnecting = false
+                            connectionError = false
+                            connectTimeout.stop()
+                        }
+                    }
+                }
+
+                Timer {
+                    id: connectTimeout
+                    interval: 10000
+                    onTriggered: {
+                        isConnecting = false
+                        connectionError = true
+                        errorReset.start()
+                    }
+                }
+
+                Timer {
+                    id: errorReset
+                    interval: 2000
+                    onTriggered: connectionError = false
+                }
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    id: contentLayout
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: 10
                     spacing: 10
                     
                     // Device Name
@@ -90,52 +122,64 @@ Item {
                             color: Style.text
                             elide: Text.ElideRight
                             Layout.fillWidth: true
+                            wrapMode: Text.Wrap 
                         }
                         
                         Text {
                             text: modelData.address
-                            color: "#6c7086" // Subtext color
+                            color: "#6c7086"
                             font.pixelSize: 10
                             visible: modelData.name !== modelData.address
                         }
                     }
 
-                    // Status / Action Button
+                    // [ANIMATED] Connect Button
                     Rectangle {
-                        implicitWidth: 70
+                        implicitWidth: 85
                         implicitHeight: 24
                         radius: 6
                         
+                        // Hover Animation
+                        scale: connectMa.containsMouse ? 1.05 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                        
                         color: {
-                            if (modelData.connected) return "#a6e3a1" // Green
-                            if (modelData.pairing) return "#f9e2af"   // Yellow
-                            return "#45475a" // Dark Grey
+                            if (connectionError) return Style.urgent
+                            if (modelData.connected) return "#a6e3a1"
+                            if (isConnecting || modelData.pairing) return "#f9e2af"
+                            return "#45475a"
                         }
 
                         Text {
                             anchors.centerIn: parent
                             text: {
+                                if (connectionError) return "Failed"
                                 if (modelData.connected) return "Connected"
+                                if (isConnecting) return "Connecting..."
                                 if (modelData.pairing) return "Pairing..."
                                 return "Connect"
                             }
-                            color: modelData.connected ? "#11111b" : "#cdd6f4"
+                            color: (modelData.connected || isConnecting || connectionError) ? "#11111b" : "#cdd6f4"
                             font.pixelSize: 11
+                            font.bold: true
                         }
 
                         MouseArea {
+                            id: connectMa
                             anchors.fill: parent
+                            hoverEnabled: true
+                            enabled: !isConnecting
                             onClicked: {
                                 if (modelData.connected) {
                                     modelData.disconnect()
                                 } else {
-                                    // If not paired, we might need to pair first, 
-                                    // but connect() often handles this or initiates it.
+                                    isConnecting = true
+                                    connectionError = false
+                                    connectTimeout.start()
                                     if (!modelData.paired) {
                                         modelData.pair()
-                                    } else {
-                                        modelData.connect()
-                                    }
+                                    } 
+                                    modelData.connect()
                                 }
                             }
                         }

@@ -1,41 +1,47 @@
+import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Hyprland
-import QtQuick
-import QtQuick.Layouts
 import "../theme"
+import "../components"
+BarModule {
+    id: root
+    property var monitor
 
-RowLayout {
-    spacing: 6
+    width: row.implicitWidth + 24
 
-    Repeater {
-        model: Hyprland.workspaces
+    Row {
+        id: row
+        anchors.centerIn: parent
+        spacing: 6
 
-        // Fixed: Wrapper Item to filter out negative workspaces (special/scratchpads)
-        Item {
-            // Only render if ID is valid (0 or positive)
-            visible: modelData.id >= 0
-            width: visible ? 30 : 0
-            height: visible ? 30 : 0
-            
+        Repeater {
+            model: Hyprland.workspaces
+
             Rectangle {
-                anchors.fill: parent
-                radius: 15
+                id: dot
                 
-                // Fixed: Safe check for focusedWorkspace to prevent "null" error
-                readonly property bool isActive: Hyprland.focusedWorkspace 
-                                                 && Hyprland.focusedWorkspace.id === modelData.id
+                readonly property var workspace: modelData
+                readonly property bool isActive: workspace.active
+                readonly property bool isVisibleWs: workspace.id !== -98
+                
+                visible: isVisibleWs
+                
+                implicitHeight: 10
+                implicitWidth: isVisibleWs ? (isActive ? 24 : 10) : 0
+                
+                radius: 5
+                color: isActive ? Style.highlight : "#a6adc8"
+                opacity: isActive ? 1.0 : 0.5
 
-                color: isActive ? Style.highlight : Style.surface
-
-                Text {
-                    anchors.centerIn: parent
-                    text: modelData.id
-                    color: parent.isActive ? "#11111b" : Style.text
-                }
+                Behavior on implicitWidth { NumberAnimation { duration: 300; easing.type: Easing.OutExpo } }
+                Behavior on color { ColorAnimation { duration: 200 } }
+                Behavior on opacity { NumberAnimation { duration: 200 } }
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Hyprland.dispatch(`workspace ${modelData.id}`)
+                    onClicked: Hyprland.dispatch("workspace " + dot.workspace.id)
+                    // ToolTip removed as requested
                 }
             }
         }

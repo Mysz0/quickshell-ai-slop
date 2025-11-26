@@ -4,10 +4,13 @@ import Quickshell.Io
 
 Item {
     id: wifiMenu
-    // No fixed height! Let ControlCenter handle it.
+    // Let ControlCenter handle layout
+    
+    property bool isEthernet: false
 
     ListModel { id: netModel }
 
+    // Existing Wifi Scan
     Process {
         id: wifiScan
         command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi"]
@@ -17,7 +20,7 @@ Item {
             var lines = wifiScan.stdout.split("\n")
             for (var i = 0; i < lines.length; i++) {
                 if (!lines[i]) continue
-                var parts = lines[i].split(":") // nmcli -t uses : as separator
+                var parts = lines[i].split(":") 
                 
                 if (parts[1] && parts[1].length > 0) {
                     netModel.append({
@@ -31,17 +34,32 @@ Item {
         }
     }
 
+    // New: Check for Ethernet
+    Process {
+        id: ethCheck
+        command: ["nmcli", "-t", "-f", "TYPE,STATE", "device"]
+        onStdoutChanged: {
+            // Looks for a line like "ethernet:connected"
+            isEthernet = stdout.indexOf("ethernet:connected") !== -1
+        }
+    }
+
     Timer {
         interval: 5000; running: true; repeat: true
         triggeredOnStart: true
-        onTriggered: wifiScan.running = true
+        onTriggered: {
+            wifiScan.running = true
+            ethCheck.running = true
+        }
     }
 
+    // Network List
     ListView {
         anchors.fill: parent
         model: netModel
         clip: true
         spacing: 4
+        visible: netModel.count > 0 // Hide if empty
 
         delegate: Rectangle {
             width: ListView.view.width
@@ -78,6 +96,38 @@ Item {
                 color: "#6c7086"
                 font.pixelSize: 10
             }
+        }
+    }
+
+    // New: Ethernet / Empty State
+    Column {
+        anchors.centerIn: parent
+        visible: netModel.count === 0
+        spacing: 10
+        
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            // Ethernet icon or Disconnected Wifi icon
+            text: isEthernet ? "󰈀" : "󰤭" 
+            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: 48
+            color: "#585b70"
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: isEthernet ? "Wired Connection" : "No Networks Found"
+            color: "#cdd6f4"
+            font.bold: true
+            font.pixelSize: 14
+        }
+        
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: isEthernet ? "Connected via Ethernet" : "Check your settings"
+            color: "#6c7086"
+            font.pixelSize: 12
+            visible: isEthernet
         }
     }
 }
