@@ -2,38 +2,40 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import "../theme"
+import "../components" // Import your components folder
 
 PanelWindow {
     id: root
     
-    // Use margins instead of anchors for the window gap
+    // Position: Top Right with margins
     anchors {
         top: true
         right: true
     }
-    
-    // Correct way to set window margins in newer Quickshell
-    // If 'margins' property fails again, assume anchors + margin values
-    margins.top: 55
-    margins.right: 10
+    margins {
+        top: 55
+        right: 10
+    }
 
     width: 380
-    height: 500
+    height: 600
+    
     visible: GlobalState.showDashboard
     color: "transparent"
 
     Rectangle {
         anchors.fill: parent
-        color: "#1e1e2e" // Base
+        color: "#1e1e2e"
         radius: 12
-        border.color: "#89b4fa" // Highlight border
-        border.width: 1
+        border.color: "#313244"
+        border.width: 2
         
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 12
+            anchors.margins: 20
+            spacing: 15
 
+            // --- Title ---
             Text {
                 text: "Control Center"
                 color: "#cdd6f4"
@@ -42,39 +44,76 @@ PanelWindow {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#45475a" }
 
-            // --- Wi-Fi ---
+            // --- Wi-Fi Section ---
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                
-                Text { 
-                    text: " Wi-Fi Networks" 
-                    color: "#a6e3a1"
-                    font.bold: true 
+                spacing: 10
+
+                // Header with Switch
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    Text { 
+                        text: "  Wi-Fi"
+                        color: "#a6e3a1"
+                        font.pixelSize: 16
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    ToggleSwitch {
+                        id: wifiSwitch
+                        checked: true // You can bind this to actual status later
+                        onToggled: (state) => {
+                            // Logic to run: nmcli radio wifi on/off
+                            console.log("Wi-Fi Toggled: " + state)
+                        }
+                    }
                 }
                 
+                // Pass the switch state to the menu to show/hide list
                 WifiMenu {
+                    visible: wifiSwitch.checked
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#45475a" }
 
-            // --- Bluetooth ---
+            // --- Bluetooth Section ---
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                
-                Text { 
-                    text: " Bluetooth Devices" 
-                    color: "#89b4fa"
-                    font.bold: true 
+                spacing: 10
+
+                // Header with Switch
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    Text { 
+                        text: "  Bluetooth"
+                        color: "#89b4fa"
+                        font.pixelSize: 16
+                        font.bold: true
+                        Layout.fillWidth: true
+                    }
+
+                    ToggleSwitch {
+                        id: btSwitch
+                        checked: true
+                        onToggled: (state) => {
+                            // Logic to run: rfkill unblock/block bluetooth
+                            console.log("Bluetooth Toggled: " + state)
+                        }
+                    }
                 }
 
                 BluetoothMenu {
+                    visible: btSwitch.checked
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                 }

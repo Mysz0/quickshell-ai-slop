@@ -4,27 +4,27 @@ import Quickshell.Io
 
 Item {
     id: wifiMenu
-    // REMOVED fixed height/width to let Layout handle it
-    
+    // No fixed height! Let ControlCenter handle it.
+
     ListModel { id: netModel }
 
     Process {
         id: wifiScan
-        command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL", "dev", "wifi"]
+        command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "dev", "wifi"]
         
         onStdoutChanged: {
             netModel.clear()
             var lines = wifiScan.stdout.split("\n")
             for (var i = 0; i < lines.length; i++) {
                 if (!lines[i]) continue
-                var parts = lines[i].split(":")
+                var parts = lines[i].split(":") // nmcli -t uses : as separator
                 
-                // Ensure we have SSID and it's not empty
-                if (parts.length >= 2 && parts[1].length > 0) {
+                if (parts[1] && parts[1].length > 0) {
                     netModel.append({
                         "active": parts[0] === "*",
                         "ssid": parts[1],
-                        "signal": parts[2] || "?"
+                        "signal": parts[2] || "?",
+                        "security": parts[3] || ""
                     })
                 }
             }
@@ -46,7 +46,7 @@ Item {
         delegate: Rectangle {
             width: ListView.view.width
             height: 36
-            color: hoverHandler.hovered ? "#313244" : "transparent"
+            color: active ? "#313244" : (hoverHandler.hovered ? "#45475a" : "transparent")
             radius: 6
 
             HoverHandler { id: hoverHandler }
@@ -55,12 +55,12 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 10
+                spacing: 12
 
                 Text {
                     text: active ? "" : "" 
                     color: active ? "#a6e3a1" : "#cdd6f4"
-                    font.family: "JetBrainsMono Nerd Font" // Ensure you have a Nerd Font
+                    font.family: "JetBrainsMono Nerd Font" 
                 }
 
                 Text {
@@ -70,7 +70,6 @@ Item {
                 }
             }
             
-            // Signal Strength
             Text {
                 anchors.right: parent.right
                 anchors.rightMargin: 10
@@ -78,14 +77,6 @@ Item {
                 text: signal + "%"
                 color: "#6c7086"
                 font.pixelSize: 10
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    // Placeholder for connection logic
-                    console.log("Connect to " + ssid)
-                }
             }
         }
     }
